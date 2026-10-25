@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEURAL BREACH: Hybrid 2.5D Defense</title>
+<style>
+  :root {
+    --bg-dark: #050811;
+    --panel-bg: rgba(10, 16, 30, 0.88);
+    --panel-border: rgba(0, 240, 255, 0.25);
+    --cyan: #00f0ff;
+    --cyan-glow: rgba(0, 240, 255, 0.4);
+    --amber: #ffb800;
+    --red: #ff3366;
+    --green: #00ff88;
+    --purple: #b537f2;
+    --text-primary: #e6f1ff;
+    --text-secondary: #7b93b2;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* TOP STATUS HUD */
+  #top-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--panel-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+  }
+
+  .brand-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan-glow);
+  }
+
+  .stage-badge {
+    padding: 3px 8px;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .stat-group {
+    display: flex;
+    gap: 22px;
+    align-items: center;
+  }
+
+  .stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+
+  .stat-val {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .val-cyan { color: var(--cyan); }
+  .val-amber { color: var(--amber); }
+  .val-red { color: var(--red); }
+  .val-green { color: var(--green); }
+
+  .ctrl-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  button.cyber-btn {
+    background: rgba(16, 26, 46, 0.85);
+    border: 1px solid var(--panel-border);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  button.cyber-btn:hover:not(:disabled) {
+    background: rgba(0, 240, 255, 0.2);
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan-glow);
+  }
+
+  button.cyber-btn.active {
+    background: var(--cyan);
+    color: #000;
+    border-color: var(--cyan);
+    font-weight: 700;
+  }
+
+  button.primary-btn {
+    background: linear-gradient(135deg, #007799, #00d4ff);
+    color: #000;
+    font-weight: 800;
+    border-color: var(--cyan);
+    padding: 8px 16px;
+    letter-spacing: 1px;
+  }
+
+  button.primary-btn:hover:not(:disabled) {
+    box-shadow: 0 0 15px var(--cyan);
+    transform: translateY(-1px);
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: #334155;
+  }
+
+  /* MAIN WORKSPACE */
+  #workspace {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #020409;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  canvas#game-canvas {
+    display: block;
+    background: #060914;
+    cursor: crosshair;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    image-rendering: auto;
+  }
+
+  /* BOTTOM TOWER DOCK */
+  #dock {
+    background: var(--panel-bg);
+    border-top: 1px solid var(--panel-border);
+    padding: 8px 14px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    overflow-x: auto;
+    z-index: 10;
+  }
+
+  .tower-card {
+    background: rgba(14, 21, 38, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    border-radius: 6px;
+    padding: 6px 8px;
+    min-width: 82px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    position: relative;
+  }
+
+  .tower-card:hover:not(.disabled) {
+    border-color: var(--cyan);
+    transform: translateY(-3px);
+    background: rgba(16, 32, 58, 0.9);
+  }
+
+  .tower-card.selected {
+    border-color: var(--cyan);
+    background: rgba(0, 240, 255, 0.15);
+    box-shadow: 0 0 14px var(--cyan-glow), inset 0 0 8px rgba(0, 240, 255, 0.2);
+  }
+
+  .tower-card.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.7);
+  }
+
+  .card-hotkey {
+    position: absolute;
+    top: 3px;
+    left: 5px;
+    font-size: 9px;
+    color: var(--text-secondary);
+  }
+
+  .card-icon {
+    width: 32px;
+    height: 32px;
+    margin: 4px 0 2px 0;
+  }
+
+  .card-name {
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 76px;
+  }
+
+  .card-cost {
+    font-size: 11px;
+    color: var(--amber);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* TOWER INSPECTOR SIDEBAR */
+  #inspector-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 250px;
+    background: rgba(8, 14, 28, 0.94);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+  }
+
+  .insp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    padding-bottom: 6px;
+  }
+
+  .insp-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--cyan);
+  }
+
+  .insp-level {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(0, 240, 255, 0.15);
+    color: var(--cyan);
+  }
+
+  .insp-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-secondary);
+  }
+
+  .stat-row span:last-child {
+    color: var(--text-primary);
+    font-weight: bold;
+  }
+
+  .insp-modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  .mode-btn {
+    font-size: 9px;
+    padding: 4px 0;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .mode-btn.active {
+    background: rgba(0, 240, 255, 0.2);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    font-weight: bold;
+  }
+
+  .insp-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .insp-actions button {
+    flex: 1;
+    font-size: 11px;
+    padding: 8px 4px;
+  }
+
+  /* MODALS */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    backdrop-filter: blur(5px);
+  }
+
+  .modal-box {
+    background: #09101f;
+    border: 1px solid var(--cyan);
+    border-radius: 8px;
+    width: 650px;
+    max-width: 90vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 30px var(--cyan-glow);
+    overflow: hidden;
+  }
+
+  .modal-head {
+    padding: 14px 18px;
+    background: rgba(0, 240, 255, 0.08);
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 1px;
+  }
+
+  .modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .codex-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .codex-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .codex-name {
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  /* NOTIFICATION TOAST */
+  #toast {
+    position: absolute;
+    bottom: 85px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(5, 10, 20, 0.9);
+    border: 1px solid var(--cyan);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 50;
+    box-shadow: 0 0 15px var(--cyan-glow);
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP HUD -->
+  <header id="top-hud">
+    <div class="brand-group">
+      <div class="brand-title">NEURAL BREACH</div>
+      <div class="stage-badge" id="hud-stage-name">STAGE 1: SUBNET GATEWAY</div>
+    </div>
+
+    <div class="stat-group">
+      <div class="stat-box">
+        <span class="stat-label">BANDWIDTH</span>
+        <span class="stat-val val-amber" id="hud-bits">650 TB</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">HUMAN CORE</span>
+        <span class="stat-val val-green" id="hud-core">100%</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">AI BREACH WAVE</span>
+        <span class="stat-val val-cyan" id="hud-wave">1 / 20</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">SCORE</span>
+        <span class="stat-val" id="hud-score">0</span>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <button class="cyber-btn" id="btn-speed-pause">❚❚</button>
+      <button class="cyber-btn active" id="btn-speed-1">1X</button>
+      <button class="cyber-btn" id="btn-speed-2">2X</button>
+      <button class="cyber-btn" id="btn-speed-3">3X</button>
+      <button class="cyber-btn" id="btn-stage-select">SECTOR</button>
+      <button class="cyber-btn" id="btn-codex">CODEX</button>
+      <button class="cyber-btn" id="btn-mute">AUDIO</button>
+      <button class="cyber-btn primary-btn" id="btn-next-wave">TRANSMIT WAVE</button>
+    </div>
+  </header>
+
+  <!-- WORKSPACE & CANVAS -->
+  <main id="workspace">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- TOWER INSPECTOR PANEL -->
+    <div id="inspector-panel">
+      <div class="insp-header">
+        <span class="insp-title" id="insp-name">PULSE BLASTER</span>
+        <span class="insp-level" id="insp-lvl">LVL 1</span>
+      </div>
+      <div class="insp-stats">
+        <div class="stat-row"><span>Damage</span><span id="insp-dmg">24</span></div>
+        <div class="stat-row"><span>Range</span><span id="insp-rng">130</span></div>
+        <div class="stat-row"><span>Fire Rate</span><span id="insp-spd">3.5/s</span></div>
+        <div class="stat-row"><span>Targeting</span><span id="insp-mode-label">FIRST</span></div>
+        <div class="stat-row"><span>Total Kills</span><span id="insp-kills">0</span></div>
+      </div>
+      <div class="insp-modes">
+        <button class="mode-btn active" data-mode="first">FIRST</button>
+        <button class="mode-btn" data-mode="last">LAST</button>
+        <button class="mode-btn" data-mode="strong">STRONG</button>
+        <button class="mode-btn" data-mode="weak">WEAK</button>
+        <button class="mode-btn" data-mode="close">CLOSE</button>
+      </div>
+      <div class="insp-actions">
+        <button class="cyber-btn" id="btn-insp-upgrade">UPGRADE (120)</button>
+        <button class="cyber-btn" id="btn-insp-sell" style="color:var(--red);">SELL (70)</button>
+      </div>
+      <button class="cyber-btn" id="btn-insp-close" style="width:100%;margin-top:2px;">CLOSE</button>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast">WAVE 1 COMMENCING</div>
+  </main>
+
+  <!-- BOTTOM TOWER DOCK (10 2.5D TOWERS) -->
+  <footer id="dock">
+    <!-- Populated procedurally via JS -->
+  </footer>
+
+  <!-- STAGE SELECT MODAL -->
+  <div class="modal-overlay" id="stage-modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">SELECT RESISTANCE SECTOR</div>
+        <button class="cyber-btn" onclick="closeModal('stage-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="codex-grid">
+          <div class="codex-card" style="cursor:pointer;" onclick="selectStage(0)">
+            <div class="codex-name val-cyan">STAGE 1: SUBNET GATEWAY</div>
+            <div>Linear peripheral bus firewall. Gentle single path ideal for establishing perimeter turrets.</div>
+          </div>
+          <div class="codex-card" style="cursor:pointer;" onclick="selectStage(1)">
+            <div class="codex-name val-amber">STAGE 2: DUAL CONVERGENCE</div>
+            <div>Two data buses converging into a central bottleneck. High density crossfire sector.</div>
+          </div>
+          <div class="codex-card" style="cursor:pointer;" onclick="selectStage(2)">
+            <div class="codex-name val-green">STAGE 3: SERPENTINE MATRIX</div>
+            <div>Winding circuit pathways requiring precision range and area decompiler nodes.</div>
+          </div>
+          <div class="codex-card" style="cursor:pointer;" onclick="selectStage(3)">
+            <div class="codex-name val-red">STAGE 4: QUANTUM NEXUS</div>
+            <div>High threat core sector with multi-angle assault corridors and rapid rogue packets.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CODEX MODAL -->
+  <div class="modal-overlay" id="codex-modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">CYBER WARFARE CODEX: DEFENSES & ROGUE AI</div>
+        <button class="cyber-btn" onclick="closeModal('codex-modal')">✕</button>
+      </div>
+      <div class="modal-body" id="codex-content">
+        <!-- Populated via JS -->
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ==========================================================================
+   NEURAL BREACH - GAME ENGINE CONSTANTS & STATE
+   ========================================================================== */
+const TILE_SIZE = 56;
+const COLS = 16;
+const ROWS = 10;
+const CANVAS_WIDTH = COLS * TILE_SIZE; // 896
+const CANVAS_HEIGHT = ROWS * TILE_SIZE; // 560
+
+// Color Palette
+const COLORS = {
+  bg: '#060914',
+  grid: '#0d1629',
+  roadBed: '#071020',
+  roadLine: '#00f0ff',
+  roadGlow: 'rgba(0, 240, 255, 0.12)',
+  towerBase: '#101a2e',
+  towerRim: '#1a2c4a',
+  towerSideDark: '#080d17',
+  towerSideLight: '#1d2d47',
+  towerTop: '#131e33',
+  selection: '#00f0ff',
+  invalid: '#ff3366',
+  core: '#00ff88',
+  spawn: '#ff3366'
+};
+
+/* ==========================================================================
+   AUDIO SYNTHESIZER (Pure Web Audio API, Zero Audio Files)
+   ========================================================================== */
+class SoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+  }
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
+    }
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+  playPulse() {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(140, t + 0.08);
+    g.gain.setValueAtTime(0.08, t);
+    g.gain.linearRampToValueAtTime(0, t + 0.08);
+    osc.connect(g);
+    g.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
+  playRail() {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1600, t);
+    osc.frequency.exponentialRampToValueAtTime(60, t + 0.35);
+    g.gain.setValueAtTime(0.2, t);
+    g.gain.linearRampToValueAtTime(0, t + 0.35);
+    osc.connect(g);
+    g.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.35);
+  }
+  playEmp() {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.linearRampToValueAtTime(40, t + 0.4);
+    g.gain.setValueAtTime(0.18, t);
+    g.gain.linearRampToValueAtTime(0, t + 0.4);
+    osc.connect(g);
+    g.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.4);
+  }
+  playBlast() {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(120, t);
+    osc.frequency.exponentialRampToValueAtTime(30, t + 0.25);
+    g.gain.setValueAtTime(0.12, t);
+    g.gain.linearRampToValueAtTime(0, t + 0.25);
+    osc.connect(g);
+    g.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  }
+  playUpgrade() {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, t);
+    osc.frequency.linearRampToValueAtTime(880, t + 0.15);
+    g.gain.setValueAtTime(0.15, t);
+    g.gain.linearRampToValueAtTime(0, t + 0.15);
+    osc.connect(g);
+    g.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.15);
+  }
+}
+const audio = new SoundEngine();
+
+/* ==========================================================================
+   GAME DEFINITIONS (10 TOWERS & 10 ENEMIES)
+   ========================================================================== */
+const TOWER_TYPES = [
+  {
+    id: 'blaster',
+    name: 'Pulse Blaster',
+    cost: 100,
+    range: 130,
+    dmg: 22,
+    rate: 3.5,
+    color: '#00f0ff',
+    desc: 'Rapid twin pulse laser. Reliable against vanguard packets.',
+    height: 32
+  },
+  {
+    id: 'railgun',
+    name: 'Rail Sniper',
+    cost: 175,
+    range: 220,
+    dmg: 95,
+    rate: 0.9,
+    color: '#ffb800',
+    desc: 'Heavy hyper-velocity slug piercing armored rogue units.',
+    height: 44
+  },
+  {
+    id: 'emp',
+    name: 'EMP Nova',
+    cost: 150,
+    range: 110,
+    dmg: 12,
+    rate: 1.2,
+    color: '#38bdf8',
+    desc: 'Radial electromagnetic blast that strips energy shields.',
+    height: 28,
+    isAoe: true
+  },
+  {
+    id: 'cryo',
+    name: 'Cryo Cooler',
+    cost: 130,
+    range: 120,
+    dmg: 6,
+    rate: 2.0,
+    color: '#67e8f9',
+    desc: 'Liquid nitrogen coolant projector slowing enemy speed by 50%.',
+    height: 30,
+    slow: 0.5,
+    slowDur: 2.5
+  },
+  {
+    id: 'tesla',
+    name: 'Tesla Arc',
+    cost: 210,
+    range: 140,
+    dmg: 35,
+    rate: 1.6,
+    color: '#c084fc',
+    desc: 'High voltage electrical arc chaining through up to 4 targets.',
+    height: 38,
+    chains: 4
+  },
+  {
+    id: 'decompiler',
+    name: 'Virus Acid',
+    cost: 160,
+    range: 125,
+    dmg: 8,
+    rate: 2.2,
+    color: '#4ade80',
+    desc: 'Corrosive algorithmic memory leak dealing acid damage over time.',
+    height: 32,
+    dot: 18,
+    dotDur: 3.0
+  },
+  {
+    id: 'mortar',
+    name: 'Plasma Mortar',
+    cost: 240,
+    range: 200,
+    dmg: 110,
+    rate: 0.6,
+    color: '#f97316',
+    desc: 'Long-range ballistics launching high explosive plasma clusters.',
+    height: 40,
+    splashRadius: 55
+  },
+  {
+    id: 'siphon',
+    name: 'Data Siphon',
+    cost: 180,
+    range: 90,
+    dmg: 0,
+    rate: 0.4,
+    color: '#eab308',
+    desc: 'Harvests excess rogue data packets to yield bonus Bandwidth.',
+    height: 36,
+    income: 25
+  },
+  {
+    id: 'vortex',
+    name: 'Null Vortex',
+    cost: 260,
+    range: 135,
+    dmg: 28,
+    rate: 1.4,
+    color: '#ec4899',
+    desc: 'Singularity well that drags high speed enemies backward.',
+    height: 42,
+    pull: 35
+  },
+  {
+    id: 'deathray',
+    name: 'Mainframe Ray',
+    cost: 350,
+    range: 160,
+    dmg: 60,
+    rate: 4.5,
+    color: '#ff0055',
+    desc: 'Continuous channeled thermal particle death beam.',
+    height: 48
+  }
+];
+
+const ENEMY_TYPES = [
+  { id: 'runner', name: 'Bit Runner', hp: 70, speed: 1.8, bounty: 12, size: 9, color: '#00f0ff' },
+  { id: 'crawler', name: 'Crawler Bot', hp: 130, speed: 1.3, bounty: 16, size: 11, color: '#38bdf8' },
+  { id: 'worm', name: 'Splitter Worm', hp: 200, speed: 1.1, bounty: 22, size: 12, color: '#4ade80', splits: true },
+  { id: 'microworm', name: 'Micro-Worm', hp: 60, speed: 2.1, bounty: 8, size: 7, color: '#22c55e' },
+  { id: 'brute', name: 'Neural Brute', hp: 450, speed: 0.75, bounty: 38, size: 16, color: '#94a3b8', armor: 0.35 },
+  { id: 'drone', name: 'Shield Drone', hp: 180, shield: 120, speed: 1.25, bounty: 30, size: 11, color: '#818cf8' },
+  { id: 'trojan', name: 'Trojan Carrier', hp: 380, speed: 0.9, bounty: 45, size: 14, color: '#c084fc', stealth: true },
+  { id: 'phantom', name: 'Quantum Phantom', hp: 260, speed: 1.4, bounty: 35, size: 11, color: '#f43f5e', phase: true },
+  { id: 'berserker', name: 'Overclocked Bot', hp: 320, speed: 1.2, bounty: 40, size: 13, color: '#fb923c', enrage: true },
+  { id: 'overseer', name: 'Apex Overseer (Boss)', hp: 2400, shield: 800, speed: 0.55, bounty: 250, size: 22, color: '#e11d48', boss: true }
+];
+
+/* ==========================================================================
+   4 STAGE ROAD LAYOUTS (Validated, Continuous Waypoints)
+   ========================================================================== */
+const STAGES = [
+  {
+    name: 'STAGE 1: SUBNET GATEWAY',
+    // Path waypoints in [col, row]
+    path: [
+      [0, 2], [5, 2], [5, 7], [10, 7], [10, 3], [15, 3]
+    ]
+  },
+  {
+    name: 'STAGE 2: DUAL CONVERGENCE',
+    path: [
+      [0, 1], [4, 1], [4, 5], [11, 5], [11, 8], [15, 8]
+    ]
+  },
+  {
+    name: 'STAGE 3: SERPENTINE MATRIX',
+    path: [
+      [0, 4], [3, 4], [3, 1], [8, 1], [8, 8], [12, 8], [12, 4], [15, 4]
+    ]
+  },
+  {
+    name: 'STAGE 4: QUANTUM NEXUS',
+    path: [
+      [0, 7], [3, 7], [3, 2], [7, 2], [7, 7], [11, 7], [11, 2], [15, 2]
+    ]
+  }
+];
+
+/* ==========================================================================
+   ENGINE STATE
+   ========================================================================== */
+let currentStageIndex = 0;
+let waypoints = []; // [{x, y, dist}]
+let pathLength = 0;
+let roadTiles = new Set(); // "col,row"
+
+let bits = 650;
+let coreHealth = 100;
+let currentWave = 0;
+let maxWaves = 20;
+let score = 0;
+let gameSpeed = 1; // 0, 1, 2, 3
+let waveActive = false;
+
+let towers = [];
+let enemies = [];
+let projectiles = [];
+let particles = [];
+let floatingTexts = [];
+
+let selectedTowerType = null;
+let selectedPlacedTower = null;
+let mouseGrid = { col: -1, row: -1 };
+let mouseWorld = { x: 0, y: 0, inside: false };
+
+let spawnQueue = [];
+let spawnTimer = 0;
+let roadFlowOffset = 0;
+
+/* ==========================================================================
+   INITIALIZATION & SETUP
+   ========================================================================== */
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = CANVAS_WIDTH;
+canvas.height = CANVAS_HEIGHT;
+
+function buildStage(index) {
+  currentStageIndex = index;
+  const stage = STAGES[index];
+  document.getElementById('hud-stage-name').innerText = stage.name;
+
+  // Build continuous pixel waypoints
+  waypoints = stage.path.map(pt => ({
+    col: pt[0],
+    row: pt[1],
+    x: pt[0] * TILE_SIZE + TILE_SIZE / 2,
+    y: pt[1] * TILE_SIZE + TILE_SIZE / 2
+  }));
+
+  // Calculate cumulative distance along path
+  pathLength = 0;
+  waypoints[0].dist = 0;
+  for (let i = 1; i < waypoints.length; i++) {
+    const dx = waypoints[i].x - waypoints[i - 1].x;
+    const dy = waypoints[i].y - waypoints[i - 1].y;
+    pathLength += Math.hypot(dx, dy);
+    waypoints[i].dist = pathLength;
+  }
+
+  // Pre-calculate all grid cells touched by the road
+  roadTiles.clear();
+  for (let i = 0; i < stage.path.length - 1; i++) {
+    const [c1, r1] = stage.path[i];
+    const [c2, r2] = stage.path[i + 1];
+    const minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+    const minR = Math.min(r1, r2), maxR = Math.max(r1, r2);
+    for (let c = minC; c <= maxC; c++) {
+      for (let r = minR; r <= maxR; r++) {
+        roadTiles.add(`${c},${r}`);
+      }
+    }
+  }
+
+  // Reset stage variables
+  towers = [];
+  enemies = [];
+  projectiles = [];
+  particles = [];
+  floatingTexts = [];
+  spawnQueue = [];
+  waveActive = false;
+  currentWave = 0;
+  coreHealth = 100;
+  bits = 650;
+  score = 0;
+  selectedPlacedTower = null;
+  hideInspector();
+  updateHUD();
+  showToast(`${stage.name} INITIALIZED`);
+}
+
+function getPointAtDistance(distance) {
+  if (distance <= 0) return { x: waypoints[0].x, y: waypoints[0].y, angle: 0 };
+  if (distance >= pathLength) {
+    const last = waypoints[waypoints.length - 1];
+    return { x: last.x, y: last.y, angle: 0 };
+  }
+
+  for (let i = 1; i < waypoints.length; i++) {
+    if (distance <= waypoints[i].dist) {
+      const p1 = waypoints[i - 1];
+      const p2 = waypoints[i];
+      const segLength = p2.dist - p1.dist;
+      const t = (distance - p1.dist) / segLength;
+      return {
+        x: p1.x + (p2.x - p1.x) * t,
+        y: p1.y + (p2.y - p1.y) * t,
+        angle: Math.atan2(p2.y - p1.y, p2.x - p1.x)
+      };
+    }
+  }
+  return { x: waypoints[0].x, y: waypoints[0].y, angle: 0 };
+}
+
+/* ==========================================================================
+   2D TOP-DOWN GROUND & ROAD RENDERING (NO JITTER, NO FLICKER)
+   ========================================================================== */
+function drawBoard2D() {
+  // 1. Dark Motherboard Base
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // 2. Microchip Substrate Grid Traces
+  ctx.strokeStyle = COLORS.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let x = 0; x <= CANVAS_WIDTH; x += TILE_SIZE) {
+    ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT);
+  }
+  for (let y = 0; y <= CANVAS_HEIGHT; y += TILE_SIZE) {
+    ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y);
+  }
+  ctx.stroke();
+
+  // 3. Ambient PCB Solder Nodes
+  ctx.fillStyle = '#0a1628';
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      if (!roadTiles.has(`${c},${r}`) && (c + r) % 3 === 0) {
+        ctx.fillRect(c * TILE_SIZE + 4, r * TILE_SIZE + 4, 3, 3);
+      }
+    }
+  }
+
+  // 4. Flat 2D Road Conduit Bed
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Road Outer Glow
+  ctx.strokeStyle = COLORS.roadGlow;
+  ctx.lineWidth = TILE_SIZE * 0.88;
+  ctx.beginPath();
+  ctx.moveTo(waypoints[0].x, waypoints[0].y);
+  for (let i = 1; i < waypoints.length; i++) {
+    ctx.lineTo(waypoints[i].x, waypoints[i].y);
+  }
+  ctx.stroke();
+
+  // Road Channel Substrate
+  ctx.strokeStyle = COLORS.roadBed;
+  ctx.lineWidth = TILE_SIZE * 0.72;
+  ctx.beginPath();
+  ctx.moveTo(waypoints[0].x, waypoints[0].y);
+  for (let i = 1; i < waypoints.length; i++) {
+    ctx.lineTo(waypoints[i].x, waypoints[i].y);
+  }
+  ctx.stroke();
+
+  // Road Center Guide Rails
+  ctx.strokeStyle = '#0e243d';
+  ctx.lineWidth = TILE_SIZE * 0.38;
+  ctx.stroke();
+
+  // 5. Flowing High-Tech Neon Data Chevrons along Road (100% Smooth Flow)
+  const chevronSpacing = 36;
+  const numChevrons = Math.floor(pathLength / chevronSpacing);
+  ctx.fillStyle = COLORS.roadLine;
+  for (let i = 0; i < numChevrons; i++) {
+    const d = (i * chevronSpacing + roadFlowOffset) % pathLength;
+    const pt = getPointAtDistance(d);
+
+    ctx.save();
+    ctx.translate(pt.x, pt.y);
+    ctx.rotate(pt.angle);
+
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    ctx.moveTo(-4, -5);
+    ctx.lineTo(4, 0);
+    ctx.lineTo(-4, 5);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = COLORS.roadLine;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // 6. Spawn Incursion Socket (2D)
+  const sp = waypoints[0];
+  ctx.save();
+  ctx.translate(sp.x, sp.y);
+  ctx.fillStyle = 'rgba(255, 51, 102, 0.2)';
+  ctx.beginPath();
+  ctx.arc(0, 0, 24, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = COLORS.spawn;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.fillStyle = COLORS.spawn;
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('INCURSION', 0, 0);
+  ctx.restore();
+
+  // 7. Human Mainframe Core (2D)
+  const cp = waypoints[waypoints.length - 1];
+  ctx.save();
+  ctx.translate(cp.x, cp.y);
+  ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+  ctx.beginPath();
+  ctx.arc(0, 0, 26, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = COLORS.core;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  // Core Data Rings
+  ctx.beginPath();
+  ctx.arc(0, 0, 14, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.core;
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 8px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('CORE', 0, 0);
+  ctx.restore();
+
+  // 8. Grid Hover / Build Placement Indicator
+  if (mouseWorld.inside && mouseGrid.col >= 0 && mouseGrid.col < COLS && mouseGrid.row >= 0 && mouseGrid.row < ROWS) {
+    const isOccupied = roadTiles.has(`${mouseGrid.col},${mouseGrid.row}`) ||
+                       towers.some(t => t.col === mouseGrid.col && t.row === mouseGrid.row);
+    const valid = !isOccupied && selectedTowerType !== null && bits >= selectedTowerType.cost;
+
+    const gx = mouseGrid.col * TILE_SIZE;
+    const gy = mouseGrid.row * TILE_SIZE;
+
+    ctx.fillStyle = isOccupied ? 'rgba(255, 51, 102, 0.22)' : (selectedTowerType ? 'rgba(0, 240, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)');
+    ctx.fillRect(gx, gy, TILE_SIZE, TILE_SIZE);
+    ctx.strokeStyle = isOccupied ? COLORS.invalid : (selectedTowerType ? COLORS.selection : 'rgba(255, 255, 255, 0.2)');
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(gx + 1, gy + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+
+    // Range preview when placing
+    if (selectedTowerType && !isOccupied) {
+      ctx.beginPath();
+      ctx.arc(gx + TILE_SIZE / 2, gy + TILE_SIZE / 2, selectedTowerType.range, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.06)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // 9. Selected Tower Range Ring
+  if (selectedPlacedTower) {
+    ctx.beginPath();
+    ctx.arc(selectedPlacedTower.x, selectedPlacedTower.y, selectedPlacedTower.range, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.08)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* ==========================================================================
+   2.5D EXTRUDED TOWER CLASS (True Volumetric Pillar on 2D Board)
+   ========================================================================== */
+class Tower25D {
+  constructor(type, col, row) {
+    this.type = type;
+    this.col = col;
+    this.row = row;
+    this.x = col * TILE_SIZE + TILE_SIZE / 2;
+    this.y = row * TILE_SIZE + TILE_SIZE / 2;
+
+    this.level = 1;
+    this.kills = 0;
+    this.targetMode = 'first'; // first, last, strong, weak, close
+    this.cooldown = 0;
+    this.angle = 0; // aim angle
+    this.target = null;
+
+    this.height = type.height || 32;
+    this.dmg = type.dmg;
+    this.range = type.range;
+    this.rate = type.rate;
+  }
+
+  upgrade() {
+    if (this.level >= 3) return false;
+    this.level++;
+    this.dmg = Math.round(this.dmg * 1.5);
+    this.range = Math.round(this.range * 1.15);
+    this.rate = +(this.rate * 1.15).toFixed(1);
+    this.height += 6; // Tower visibly rises in 2.5D space!
+    audio.playUpgrade();
+    return true;
+  }
+
+  update(dt) {
+    if (this.cooldown > 0) this.cooldown -= dt;
+
+    // Support / Siphon Tower Logic
+    if (this.type.id === 'siphon') {
+      if (this.cooldown <= 0) {
+        bits += this.type.income * this.level;
+        this.cooldown = 1 / this.rate;
+        spawnFloatingText(`+${this.type.income * this.level} TB`, this.x, this.y - this.height, '#eab308');
+        updateHUD();
+      }
+      return;
+    }
+
+    // Acquire Target
+    this.target = this.acquireTarget();
+
+    if (this.target) {
+      // Aim turret head towards target
+      this.angle = Math.atan2(this.target.y - (this.y - this.height), this.target.x - this.x);
+
+      // Fire weapon
+      if (this.cooldown <= 0) {
+        this.fire(this.target);
+        this.cooldown = 1 / this.rate;
+      }
+    }
+  }
+
+  acquireTarget() {
+    const inRange = enemies.filter(e => {
+      if (e.stealth && !e.revealed && this.type.id !== 'emp') return false;
+      const d = Math.hypot(e.x - this.x, e.y - this.y);
+      return d <= this.range;
+    });
+
+    if (inRange.length === 0) return null;
+
+    switch (this.targetMode) {
+      case 'last':
+        return inRange.reduce((a, b) => a.distanceTraveled < b.distanceTraveled ? a : b);
+      case 'strong':
+        return inRange.reduce((a, b) => a.hp > b.hp ? a : b);
+      case 'weak':
+        return inRange.reduce((a, b) => a.hp < b.hp ? a : b);
+      case 'close':
+        return inRange.reduce((a, b) => Math.hypot(a.x - this.x, a.y - this.y) < Math.hypot(b.x - this.x, b.y - this.y) ? a : b);
+      case 'first':
+      default:
+        return inRange.reduce((a, b) => a.distanceTraveled > b.distanceTraveled ? a : b);
+    }
+  }
+
+  fire(target) {
+    const launchX = this.x;
+    const launchY = this.y - this.height; // Fired from top elevated 2.5D head
+
+    switch (this.type.id) {
+      case 'blaster':
+        projectiles.push(new Projectile(launchX, launchY, target, this.dmg, 650, this.type.color, 'laser', this));
+        audio.playPulse();
+        break;
+      case 'railgun':
+        projectiles.push(new Projectile(launchX, launchY, target, this.dmg, 1200, this.type.color, 'rail', this));
+        audio.playRail();
+        break;
+      case 'emp':
+        audio.playEmp();
+        // Radial EMP wave
+        projectiles.push(new EmpWave(launchX, launchY, this.range, this.dmg, this));
+        break;
+      case 'cryo':
+        projectiles.push(new Projectile(launchX, launchY, target, this.dmg, 450, this.type.color, 'cryo', this));
+        break;
+      case 'tesla':
+        audio.playPulse();
+        this.fireTeslaArc(target);
+        break;
+      case 'decompiler':
+        projectiles.push(new Projectile(launchX, launchY, target, this.dmg, 480, this.type.color, 'acid', this));
+        break;
+      case 'mortar':
+        audio.playBlast();
+        projectiles.push(new MortarShell(launchX, launchY, target.x, target.y, this.dmg, this.type.splashRadius, this));
+        break;
+      case 'vortex':
+        target.pullBack(this.type.pull * this.level);
+        createParticles(target.x, target.y, 8, this.type.color);
+        break;
+      case 'deathray':
+        target.takeDamage(this.dmg * 0.25, this);
+        createBeam(launchX, launchY, target.x, target.y, this.type.color);
+        break;
+    }
+  }
+
+  fireTeslaArc(firstTarget) {
+    let current = firstTarget;
+    let hitList = [current];
+    current.takeDamage(this.dmg, this);
+
+    for (let c = 1; c < (this.type.chains || 3); c++) {
+      const next = enemies.find(e => !hitList.includes(e) && Math.hypot(e.x - current.x, e.y - current.y) < 95);
+      if (next) {
+        hitList.push(next);
+        next.takeDamage(Math.round(this.dmg * 0.75), this);
+        current = next;
+      } else {
+        break;
+      }
+    }
+
+    for (let i = 0; i < hitList.length - 1; i++) {
+      createBeam(hitList[i].x, hitList[i].y, hitList[i + 1].x, hitList[i + 1].y, '#c084fc');
+    }
+    createBeam(this.x, this.y - this.height, hitList[0].x, hitList[0].y, '#c084fc');
+  }
+
+  /* 2.5D PRISM RENDERING (Base on 2D ground, Extruded vertically by -height) */
+  draw() {
+    const bx = this.x;
+    const by = this.y;
+    const h = this.height;
+    const r = TILE_SIZE * 0.38; // Radius of footprint
+
+    // 1. Drop Shadow on Flat 2D Ground
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(bx + 6, by + 6, r * 0.95, r * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 2. Base Mounting Socket
+    ctx.fillStyle = COLORS.towerBase;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, r, r * 0.65, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = COLORS.towerRim;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 3. Volumetric 2.5D Extruded Body (Left Dark Face & Right Lit Face)
+    const topY = by - h;
+
+    // Darker ambient shadow side (Left)
+    ctx.fillStyle = COLORS.towerSideDark;
+    ctx.beginPath();
+    ctx.moveTo(bx - r, by);
+    ctx.lineTo(bx - r, topY);
+    ctx.lineTo(bx, topY + r * 0.35);
+    ctx.lineTo(bx, by + r * 0.35);
+    ctx.closePath();
+    ctx.fill();
+
+    // Lit side (Right)
+    ctx.fillStyle = COLORS.towerSideLight;
+    ctx.beginPath();
+    ctx.moveTo(bx, by + r * 0.35);
+    ctx.lineTo(bx, topY + r * 0.35);
+    ctx.lineTo(bx + r, topY);
+    ctx.lineTo(bx + r, by);
+    ctx.closePath();
+    ctx.fill();
+
+    // Corner bevel pinstripes
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx, by + r * 0.35);
+    ctx.lineTo(bx, topY + r * 0.35);
+    ctx.stroke();
+
+    // 4. Elevated 2.5D Top Platform Deck
+    ctx.fillStyle = COLORS.towerTop;
+    ctx.beginPath();
+    ctx.ellipse(bx, topY, r * 0.85, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = this.type.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 5. Level Indicator Pips on Elevated Deck
+    for (let l = 0; l < this.level; l++) {
+      ctx.fillStyle = this.type.color;
+      ctx.beginPath();
+      ctx.arc(bx - 8 + l * 8, topY - 8, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 6. Rotating Elevated 2.5D Turret Head & Weaponry
+    ctx.save();
+    ctx.translate(bx, topY);
+    ctx.rotate(this.angle);
+
+    // Turret Core Ball
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = this.type.color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Weapon Barrel Geometry (Stylized per tower)
+    ctx.fillStyle = this.type.color;
+    switch (this.type.id) {
+      case 'blaster':
+        // Twin blaster barrels
+        ctx.fillRect(4, -4, 14, 2.5);
+        ctx.fillRect(4, 1.5, 14, 2.5);
+        break;
+      case 'railgun':
+        // Long single magnetic rail
+        ctx.fillRect(4, -2, 22, 4);
+        ctx.fillStyle = '#ffb800';
+        ctx.fillRect(10, -3.5, 3, 7);
+        break;
+      case 'emp':
+        // Concentric discharge rings
+        ctx.strokeStyle = this.type.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      case 'mortar':
+        // Heavy wide cannon muzzle
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(2, -6, 16, 12);
+        ctx.fillStyle = this.type.color;
+        ctx.fillRect(14, -5, 4, 10);
+        break;
+      case 'tesla':
+        // High voltage coil spire
+        ctx.fillRect(2, -2, 12, 4);
+        ctx.beginPath();
+        ctx.arc(14, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      default:
+        // Standard single barrel
+        ctx.fillRect(2, -2.5, 14, 5);
+        break;
+    }
+
+    ctx.restore();
+  }
+}
+
+/* ==========================================================================
+   2D TOP-DOWN ROGUE AI ENEMY CLASS (Clean 2D Flat Sprites)
+   ========================================================================== */
+class Enemy2D {
+  constructor(type, waveFactor = 1.0) {
+    this.type = type;
+    this.hp = Math.round(type.hp * waveFactor);
+    this.maxHp = this.hp;
+    this.shield = type.shield ? Math.round(type.shield * waveFactor) : 0;
+    this.maxShield = this.shield;
+    this.baseSpeed = type.speed;
+    this.speed = this.baseSpeed;
+    this.bounty = type.bounty;
+    this.size = type.size;
+    this.color = type.color;
+
+    this.distanceTraveled = 0;
+    this.x = waypoints[0].x;
+    this.y = waypoints[0].y;
+    this.angle = 0;
+
+    this.slowTimer = 0;
+    this.dotTimer = 0;
+    this.dotDmg = 0;
+    this.dotSource = null;
+
+    this.stealth = !!type.stealth;
+    this.revealed = false;
+    this.phase = !!type.phase;
+    this.phaseCooldown = 3.0;
+
+    this.enraged = false;
+    this.legCycle = 0;
+    this.dead = false;
+  }
+
+  update(dt) {
+    // Status Effects
+    if (this.slowTimer > 0) {
+      this.slowTimer -= dt;
+      if (this.slowTimer <= 0) this.speed = this.baseSpeed;
+    }
+
+    if (this.dotTimer > 0) {
+      this.dotTimer -= dt;
+      this.takeDamage(this.dotDmg * dt, this.dotSource);
+      if (Math.random() < 0.2) createParticles(this.x, this.y, 1, '#4ade80');
+    }
+
+    // Berserker enrage
+    if (this.type.enrage && !this.enraged && this.hp < this.maxHp * 0.45) {
+      this.enraged = true;
+      this.speed = this.baseSpeed * 1.8;
+      this.color = '#ff1100';
+      spawnFloatingText('OVERCLOCKED!', this.x, this.y - 12, '#ff1100');
+    }
+
+    // Phantom Phase Shift
+    if (this.phase) {
+      this.phaseCooldown -= dt;
+      if (this.phaseCooldown <= 0) {
+        this.distanceTraveled += 45;
+        this.phaseCooldown = 3.5;
+        createParticles(this.x, this.y, 10, '#f43f5e');
+      }
+    }
+
+    // Move Along Waypoints Smoothly
+    this.distanceTraveled += this.speed * 60 * dt;
+    this.legCycle += this.speed * 12 * dt;
+
+    const pt = getPointAtDistance(this.distanceTraveled);
+    this.x = pt.x;
+    this.y = pt.y;
+    this.angle = pt.angle;
+
+    // Breach Human Core Check
+    if (this.distanceTraveled >= pathLength) {
+      this.dead = true;
+      const penalty = this.type.boss ? 25 : 5;
+      coreHealth = Math.max(0, coreHealth - penalty);
+      spawnFloatingText(`-${penalty}% CORE!`, this.x, this.y, '#ff3366');
+      audio.playBlast();
+      updateHUD();
+      if (coreHealth <= 0) gameOver();
+    }
+  }
+
+  takeDamage(amount, source) {
+    if (this.dead) return;
+
+    if (this.type.armor) {
+      amount *= (1 - this.type.armor);
+    }
+
+    if (this.shield > 0) {
+      if (this.shield >= amount) {
+        this.shield -= amount;
+        amount = 0;
+      } else {
+        amount -= this.shield;
+        this.shield = 0;
+      }
+    }
+
+    this.hp -= amount;
+    this.revealed = true; // revealed on hit
+
+    if (this.hp <= 0) {
+      this.dead = true;
+      bits += this.bounty;
+      score += this.bounty * 10;
+      if (source) source.kills++;
+      audio.playBlast();
+      createParticles(this.x, this.y, 14, this.color);
+      spawnFloatingText(`+${this.bounty} TB`, this.x, this.y - 10, '#ffb800');
+      updateHUD();
+
+      // Splitter Worm Logic
+      if (this.type.splits) {
+        for (let i = -1; i <= 1; i += 2) {
+          const micro = new Enemy2D(ENEMY_TYPES.find(e => e.id === 'microworm'));
+          micro.distanceTraveled = Math.max(0, this.distanceTraveled + i * 16);
+          enemies.push(micro);
+        }
+      }
+    }
+  }
+
+  pullBack(amount) {
+    this.distanceTraveled = Math.max(0, this.distanceTraveled - amount);
+    spawnFloatingText('PULL!', this.x, this.y - 8, '#ec4899');
+  }
+
+  applySlow(mult, duration) {
+    this.slowTimer = duration;
+    this.speed = this.baseSpeed * mult;
+  }
+
+  applyDot(dmg, duration, source) {
+    this.dotDmg = dmg;
+    this.dotTimer = duration;
+    this.dotSource = source;
+  }
+
+  /* 2D FLAT ENEMY SPRITE RENDERING */
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Stealth Transparency
+    if (this.stealth && !this.revealed) {
+      ctx.globalAlpha = 0.35;
+    }
+
+    // Health / Shield Bar (Flat 2D above enemy)
+    const barW = this.size * 2.4;
+    const barH = 3;
+    const barY = -this.size - 8;
+
+    // HP background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(-barW / 2, barY, barW, barH);
+    // HP fill
+    const hpRatio = Math.max(0, this.hp / this.maxHp);
+    ctx.fillStyle = hpRatio > 0.5 ? '#00ff88' : (hpRatio > 0.25 ? '#ffb800' : '#ff3366');
+    ctx.fillRect(-barW / 2, barY, barW * hpRatio, barH);
+
+    // Shield Bar
+    if (this.maxShield > 0) {
+      const shieldRatio = Math.max(0, this.shield / this.maxShield);
+      ctx.fillStyle = '#00f0ff';
+      ctx.fillRect(-barW / 2, barY - 3, barW * shieldRatio, 2);
+    }
+
+    // Rotate sprite into direction of motion
+    ctx.rotate(this.angle);
+
+    // Procedural 2D Graphic based on AI Type
+    ctx.fillStyle = this.color;
+    ctx.strokeStyle = '#ffffff';
+
+    switch (this.type.id) {
+      case 'runner':
+        // Sleek wedge dart
+        ctx.beginPath();
+        ctx.moveTo(this.size, 0);
+        ctx.lineTo(-this.size, -this.size * 0.7);
+        ctx.lineTo(-this.size * 0.4, 0);
+        ctx.lineTo(-this.size, this.size * 0.7);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'crawler':
+      case 'microworm':
+        // Multi-legged insectoid bot
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        // Scuttling procedural legs
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = this.color;
+        for (let l = -1; l <= 1; l++) {
+          const legWobble = Math.sin(this.legCycle + l) * 5;
+          ctx.beginPath();
+          ctx.moveTo(0, l * 5);
+          ctx.lineTo(-this.size * 0.8, l * 8 + legWobble);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, l * 5);
+          ctx.lineTo(this.size * 0.8, l * 8 - legWobble);
+          ctx.stroke();
+        }
+        break;
+
+      case 'worm':
+        // Centipede segments
+        for (let seg = 0; seg < 4; seg++) {
+          ctx.beginPath();
+          ctx.arc(-seg * 7, 0, this.size * 0.7 - seg * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+
+      case 'brute':
+        // Heavy armored cyber tank
+        ctx.fillRect(-this.size, -this.size * 0.8, this.size * 2, this.size * 1.6);
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-this.size * 0.6, -this.size * 0.5, this.size * 1.2, this.size);
+        ctx.fillStyle = '#ff0055';
+        ctx.fillRect(this.size * 0.4, -2, 6, 4);
+        break;
+
+      case 'drone':
+        // Quadcopter disc with energy ring
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        break;
+
+      case 'trojan':
+        // Diamond cloaker
+        ctx.beginPath();
+        ctx.moveTo(this.size * 1.3, 0);
+        ctx.lineTo(0, -this.size);
+        ctx.lineTo(-this.size * 1.3, 0);
+        ctx.lineTo(0, this.size);
+        ctx.closePath();
+        ctx.fill();
+        break;
+
+      case 'boss':
+      case 'overseer':
+        // Massive Apex Dreadnought
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ff0055';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-4, -4, 8, 8);
+        break;
+
+      default:
+        // Default hexagonal AI pod
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = i * Math.PI / 3;
+          const px = Math.cos(a) * this.size;
+          const py = Math.sin(a) * this.size;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        break;
+    }
+
+    ctx.restore();
+  }
+}
+
+/* ==========================================================================
+   PROJECTILES, PARTICLES & VISUAL FX
+   ========================================================================== */
+class Projectile {
+  constructor(x, y, target, dmg, speed, color, style, source) {
+    this.x = x;
+    this.y = y;
+    this.target = target;
+    this.dmg = dmg;
+    this.speed = speed;
+    this.color = color;
+    this.style = style;
+    this.source = source;
+    this.dead = false;
+  }
+
+  update(dt) {
+    if (this.target.dead) {
+      this.dead = true;
+      return;
+    }
+
+    const dx = this.target.x - this.x;
+    const dy = this.target.y - this.y;
+    const dist = Math.hypot(dx, dy);
+    const step = this.speed * dt;
+
+    if (step >= dist) {
+      // Impact Target
+      this.x = this.target.x;
+      this.y = this.target.y;
+      this.target.takeDamage(this.dmg, this.source);
+
+      if (this.style === 'cryo') this.target.applySlow(0.5, 2.5);
+      if (this.style === 'acid') this.target.applyDot(18, 3.0, this.source);
+
+      createParticles(this.x, this.y, 6, this.color);
+      this.dead = true;
+    } else {
+      this.x += (dx / dist) * step;
+      this.y += (dy / dist) * step;
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+class MortarShell {
+  constructor(x, y, tx, ty, dmg, radius, source) {
+    this.sx = x; this.sy = y;
+    this.tx = tx; this.ty = ty;
+    this.dmg = dmg;
+    this.radius = radius;
+    this.source = source;
+    this.progress = 0;
+    this.dead = false;
+  }
+  update(dt) {
+    this.progress += dt * 1.6;
+    if (this.progress >= 1.0) {
+      this.dead = true;
+      // Splash damage
+      enemies.forEach(e => {
+        const d = Math.hypot(e.x - this.tx, e.y - this.ty);
+        if (d <= this.radius) {
+          const falloff = 1 - (d / this.radius) * 0.5;
+          e.takeDamage(Math.round(this.dmg * falloff), this.source);
+        }
+      });
+      createParticles(this.tx, this.ty, 25, '#f97316');
+      audio.playBlast();
+    }
+  }
+  draw() {
+    const t = this.progress;
+    const curX = this.sx + (this.tx - this.sx) * t;
+    const curY = this.sy + (this.ty - this.sy) * t - Math.sin(t * Math.PI) * 75; // Ballistic arc
+    ctx.save();
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath();
+    ctx.arc(curX, curY, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+class EmpWave {
+  constructor(x, y, maxRadius, dmg, source) {
+    this.x = x; this.y = y;
+    this.maxRadius = maxRadius;
+    this.radius = 5;
+    this.dmg = dmg;
+    this.source = source;
+    this.dead = false;
+    this.hitSet = new Set();
+  }
+  update(dt) {
+    this.radius += 240 * dt;
+    if (this.radius >= this.maxRadius) {
+      this.dead = true;
+      return;
+    }
+    enemies.forEach(e => {
+      if (!this.hitSet.has(e)) {
+        const d = Math.hypot(e.x - this.x, e.y - this.y);
+        if (d <= this.radius) {
+          this.hitSet.add(e);
+          e.shield = 0; // Completely wipes out shield
+          e.takeDamage(this.dmg, this.source);
+          e.applySlow(0.3, 2.0);
+          e.revealed = true;
+        }
+      }
+    });
+  }
+  draw() {
+    ctx.save();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// Particle Engine
+function createParticles(x, y, count, color) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 20 + Math.random() * 80;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 0.4 + Math.random() * 0.4,
+      maxLife: 0.8,
+      color
+    });
+  }
+}
+
+function createBeam(x1, y1, x2, y2, color) {
+  particles.push({
+    isBeam: true,
+    x1, y1, x2, y2,
+    life: 0.12,
+    color
+  });
+}
+
+function spawnFloatingText(text, x, y, color) {
+  floatingTexts.push({ text, x, y, color, life: 0.9 });
+}
+
+/* ==========================================================================
+   WAVE GENERATOR (20 Progressive Cyber Attacks)
+   ========================================================================== */
+function transmitWave() {
+  if (waveActive) return;
+  audio.init();
+
+  currentWave++;
+  if (currentWave > maxWaves) {
+    showToast('ALL THREATS EXTERMINATED - STAGE CLEARED!');
+    return;
+  }
+
+  waveActive = true;
+  document.getElementById('btn-next-wave').disabled = true;
+  updateHUD();
+
+  // Procedural wave formulation
+  spawnQueue = [];
+  const waveFactor = 1.0 + (currentWave - 1) * 0.22;
+  const count = 8 + currentWave * 3;
+
+  for (let i = 0; i < count; i++) {
+    let typeId = 'runner';
+    if (currentWave >= 2 && i % 3 === 0) typeId = 'crawler';
+    if (currentWave >= 4 && i % 5 === 0) typeId = 'worm';
+    if (currentWave >= 6 && i % 4 === 0) typeId = 'brute';
+    if (currentWave >= 8 && i % 4 === 1) typeId = 'drone';
+    if (currentWave >= 10 && i % 5 === 2) typeId = 'trojan';
+    if (currentWave >= 12 && i % 6 === 3) typeId = 'phantom';
+    if (currentWave >= 14 && i % 5 === 4) typeId = 'berserker';
+
+    // Boss spawns
+    if ((currentWave === 10 || currentWave === 20) && i === count - 1) {
+      typeId = 'overseer';
+    }
+
+    const template = ENEMY_TYPES.find(e => e.id === typeId);
+    spawnQueue.push({ type: template, factor: waveFactor });
+  }
+
+  spawnTimer = 0.5;
+  showToast(`BREACH WAVE ${currentWave} DETECTED!`);
+}
+
+/* ==========================================================================
+   GAME LOOP (Pure Deterministic Canvas Render)
+   ========================================================================== */
+let lastTimestamp = performance.now();
+
+function gameLoop(timestamp) {
+  const rawDt = (timestamp - lastTimestamp) / 1000;
+  lastTimestamp = timestamp;
+
+  // Clamped dt with speed scaling
+  const dt = Math.min(rawDt, 0.1) * gameSpeed;
+
+  if (dt > 0) {
+    // Flow offset for road chevrons
+    roadFlowOffset = (roadFlowOffset + dt * 40) % pathLength;
+
+    // Spawner
+    if (spawnQueue.length > 0) {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        const next = spawnQueue.shift();
+        enemies.push(new Enemy2D(next.type, next.factor));
+        spawnTimer = Math.max(0.35, 1.3 - currentWave * 0.04);
+      }
+    } else if (waveActive && enemies.length === 0) {
+      // Wave Complete
+      waveActive = false;
+      document.getElementById('btn-next-wave').disabled = false;
+      const waveBonus = 75 + currentWave * 20;
+      bits += waveBonus;
+      showToast(`WAVE SECURED! +${waveBonus} TB ALLOCATED`);
+      updateHUD();
+    }
+
+    // Update Entities
+    enemies.forEach(e => e.update(dt));
+    enemies = enemies.filter(e => !e.dead);
+
+    towers.forEach(t => t.update(dt));
+
+    projectiles.forEach(p => p.update(dt));
+    projectiles = projectiles.filter(p => !p.dead);
+
+    // Update Particles
+    particles.forEach(p => p.life -= dt);
+    particles = particles.filter(p => p.life > 0);
+
+    // Update Floating Texts
+    floatingTexts.forEach(f => {
+      f.y -= dt * 25;
+      f.life -= dt;
+    });
+    floatingTexts = floatingTexts.filter(f => f.life > 0);
+  }
+
+  /* ---------------- RENDERING ORDER ---------------- */
+  // 1. Clear & Draw 2D Ground & Road Layout
+  drawBoard2D();
+
+  // 2. Draw 2D Flat Enemies along the road
+  enemies.forEach(e => e.draw());
+
+  // 3. Draw 2.5D Extruded Towers (Sorted by row/depth for occlusion)
+  const sortedTowers = [...towers].sort((a, b) => a.row - b.row);
+  sortedTowers.forEach(t => t.draw());
+
+  // 4. Draw Projectiles & Energy Effects
+  projectiles.forEach(p => p.draw());
+
+  // 5. Draw Particles & Beams
+  particles.forEach(p => {
+    ctx.save();
+    if (p.isBeam) {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x1, p.y1);
+      ctx.lineTo(p.x2, p.y2);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.life / p.maxLife;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  // 6. Draw Floating Text Indicators
+  floatingTexts.forEach(f => {
+    ctx.save();
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = f.color;
+    ctx.globalAlpha = Math.min(1.0, f.life * 1.5);
+    ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.restore();
+  });
+
+  requestAnimationFrame(gameLoop);
+}
+
+/* ==========================================================================
+   INTERACTION & INPUT HANDLERS (Pixel Accurate Grid Alignment)
+   ========================================================================== */
+function getCanvasMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
+  return {
+    x, y,
+    col: Math.floor(x / TILE_SIZE),
+    row: Math.floor(y / TILE_SIZE)
+  };
+}
+
+canvas.addEventListener('mousemove', e => {
+  const pos = getCanvasMousePos(e);
+  mouseWorld.x = pos.x;
+  mouseWorld.y = pos.y;
+  mouseWorld.inside = true;
+  mouseGrid.col = pos.col;
+  mouseGrid.row = pos.row;
+});
+
+canvas.addEventListener('mouseleave', () => {
+  mouseWorld.inside = false;
+  mouseGrid.col = -1;
+  mouseGrid.row = -1;
+});
+
+canvas.addEventListener('click', e => {
+  audio.init();
+  const pos = getCanvasMousePos(e);
+  const { col, row } = pos;
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+
+  // 1. Check if clicking on an already built tower
+  const existing = towers.find(t => t.col === col && t.row === row);
+  if (existing) {
+    selectedPlacedTower = existing;
+    selectedTowerType = null;
+    refreshTowerDock();
+    showInspector(existing);
+    return;
+  }
+
+  // 2. Build New Tower
+  if (selectedTowerType) {
+    const onRoad = roadTiles.has(`${col},${row}`);
+    if (onRoad) {
+      showToast('RESTRICTED: CANNOT BUILD ON HIGHWAY');
+      return;
+    }
+    if (bits < selectedTowerType.cost) {
+      showToast('INSUFFICIENT BANDWIDTH');
+      return;
+    }
+
+    // Build Success
+    bits -= selectedTowerType.cost;
+    const newTower = new Tower25D(selectedTowerType, col, row);
+    towers.push(newTower);
+    audio.playUpgrade();
+    updateHUD();
+    refreshTowerDock();
+
+    selectedPlacedTower = newTower;
+    showInspector(newTower);
+    return;
+  }
+
+  // Deselect if clicking empty land
+  selectedPlacedTower = null;
+  hideInspector();
+});
+
+/* ==========================================================================
+   UI & HUD CONTROL
+   ========================================================================== */
+function updateHUD() {
+  document.getElementById('hud-bits').innerText = `${bits} TB`;
+  document.getElementById('hud-core').innerText = `${coreHealth}%`;
+  document.getElementById('hud-wave').innerText = `${currentWave} / ${maxWaves}`;
+  document.getElementById('hud-score').innerText = score;
+
+  const coreEl = document.getElementById('hud-core');
+  if (coreHealth <= 25) coreEl.className = 'stat-val val-red';
+  else if (coreHealth <= 60) coreEl.className = 'stat-val val-amber';
+  else coreEl.className = 'stat-val val-green';
+
+  refreshTowerDock();
+  if (selectedPlacedTower) updateInspectorValues();
+}
+
+function refreshTowerDock() {
+  const dock = document.getElementById('dock');
+  dock.innerHTML = '';
+
+  TOWER_TYPES.forEach((type, idx) => {
+    const card = document.createElement('div');
+    const isAffordable = bits >= type.cost;
+    const isSelected = selectedTowerType && selectedTowerType.id === type.id;
+
+    card.className = `tower-card ${!isAffordable ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`;
+    card.onclick = () => {
+      audio.init();
+      if (selectedTowerType && selectedTowerType.id === type.id) {
+        selectedTowerType = null;
+      } else {
+        selectedTowerType = type;
+        selectedPlacedTower = null;
+        hideInspector();
+      }
+      refreshTowerDock();
+    };
+
+    card.innerHTML = `
+      <div class="card-hotkey">${idx + 1}</div>
+      <svg class="card-icon" viewBox="0 0 32 32">
+        <rect x="6" y="10" width="20" height="14" fill="#0d192e" stroke="${type.color}" stroke-width="1.5" rx="3"/>
+        <line x1="16" y1="10" x2="16" y2="4" stroke="${type.color}" stroke-width="2.5"/>
+        <circle cx="16" cy="16" r="3.5" fill="${type.color}"/>
+      </svg>
+      <div class="card-name">${type.name}</div>
+      <div class="card-cost">${type.cost} TB</div>
+    `;
+    dock.appendChild(card);
+  });
+}
+
+// Inspector Sidebar
+function showInspector(tower) {
+  const panel = document.getElementById('inspector-panel');
+  panel.style.display = 'flex';
+  updateInspectorValues();
+}
+
+function hideInspector() {
+  document.getElementById('inspector-panel').style.display = 'none';
+}
+
+function updateInspectorValues() {
+  if (!selectedPlacedTower) return;
+  const t = selectedPlacedTower;
+  document.getElementById('insp-name').innerText = t.type.name.toUpperCase();
+  document.getElementById('insp-lvl').innerText = `LVL ${t.level}`;
+  document.getElementById('insp-dmg').innerText = t.dmg;
+  document.getElementById('insp-rng').innerText = t.range;
+  document.getElementById('insp-spd').innerText = `${t.rate}/s`;
+  document.getElementById('insp-mode-label').innerText = t.targetMode.toUpperCase();
+  document.getElementById('insp-kills').innerText = t.kills;
+
+  const upBtn = document.getElementById('btn-insp-upgrade');
+  if (t.level >= 3) {
+    upBtn.innerText = 'MAX LEVEL';
+    upBtn.disabled = true;
+  } else {
+    const upCost = Math.round(t.type.cost * 0.85 * t.level);
+    upBtn.innerText = `UPGRADE (${upCost})`;
+    upBtn.disabled = bits < upCost;
+    upBtn.onclick = () => {
+      if (bits >= upCost) {
+        bits -= upCost;
+        t.upgrade();
+        updateHUD();
+      }
+    };
+  }
+
+  const refund = Math.round(t.type.cost * 0.7 * t.level);
+  const sellBtn = document.getElementById('btn-insp-sell');
+  sellBtn.innerText = `SELL (${refund})`;
+  sellBtn.onclick = () => {
+    bits += refund;
+    towers = towers.filter(tw => tw !== t);
+    selectedPlacedTower = null;
+    hideInspector();
+    updateHUD();
+  };
+
+  // Targeting buttons
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === t.targetMode);
+    btn.onclick = () => {
+      t.targetMode = btn.dataset.mode;
+      updateInspectorValues();
+    };
+  });
+}
+
+document.getElementById('btn-insp-close').onclick = () => {
+  selectedPlacedTower = null;
+  hideInspector();
+};
+
+// Speed & Controls
+document.getElementById('btn-speed-pause').onclick = () => setSpeed(0);
+document.getElementById('btn-speed-1').onclick = () => setSpeed(1);
+document.getElementById('btn-speed-2').onclick = () => setSpeed(2);
+document.getElementById('btn-speed-3').onclick = () => setSpeed(3);
+
+function setSpeed(s) {
+  gameSpeed = s;
+  ['btn-speed-pause', 'btn-speed-1', 'btn-speed-2', 'btn-speed-3'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  if (s === 0) document.getElementById('btn-speed-pause').classList.add('active');
+  if (s === 1) document.getElementById('btn-speed-1').classList.add('active');
+  if (s === 2) document.getElementById('btn-speed-2').classList.add('active');
+  if (s === 3) document.getElementById('btn-speed-3').classList.add('active');
+}
+
+document.getElementById('btn-next-wave').onclick = transmitWave;
+
+// Audio Toggle
+document.getElementById('btn-mute').onclick = function() {
+  audio.init();
+  audio.muted = !audio.muted;
+  this.innerText = audio.muted ? 'MUTED' : 'AUDIO';
+  this.classList.toggle('active', !audio.muted);
+};
+
+// Keyboard Hotkeys
+window.addEventListener('keydown', e => {
+  const num = parseInt(e.key);
+  if (num >= 1 && num <= 9) {
+    const type = TOWER_TYPES[num - 1];
+    if (type) {
+      selectedTowerType = type;
+      selectedPlacedTower = null;
+      hideInspector();
+      refreshTowerDock();
+    }
+  } else if (e.key === '0') {
+    selectedTowerType = TOWER_TYPES[9];
+    selectedPlacedTower = null;
+    hideInspector();
+    refreshTowerDock();
+  } else if (e.key === 'Escape') {
+    selectedTowerType = null;
+    selectedPlacedTower = null;
+    hideInspector();
+    refreshTowerDock();
+  } else if (e.key === ' ') {
+    transmitWave();
+  }
+});
+
+// Toast System
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.innerText = msg;
+  el.style.opacity = '1';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 2400);
+}
+
+// Modal System
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+document.getElementById('btn-stage-select').onclick = () => openModal('stage-modal');
+document.getElementById('btn-codex').onclick = () => {
+  populateCodex();
+  openModal('codex-modal');
+};
+
+function selectStage(idx) {
+  closeModal('stage-modal');
+  buildStage(idx);
+}
+
+function populateCodex() {
+  const container = document.getElementById('codex-content');
+  let html = '<div class="codex-grid">';
+  html += '<div style="grid-column: span 2; font-weight:bold; color:var(--cyan); border-bottom:1px solid rgba(0,240,255,0.2); padding-bottom:4px;">DEFENSIVE 2.5D HARDWARE</div>';
+  TOWER_TYPES.forEach(t => {
+    html += `
+      <div class="codex-card">
+        <div class="codex-name" style="color:${t.color}">${t.name} (Cost: ${t.cost} TB)</div>
+        <div>${t.desc}</div>
+        <div style="margin-top:4px; font-size:10px; color:var(--cyan)">Damage: ${t.dmg} | Range: ${t.range} | Cadence: ${t.rate}/s</div>
+      </div>
+    `;
+  });
+  html += '<div style="grid-column: span 2; font-weight:bold; color:var(--red); border-bottom:1px solid rgba(255,51,102,0.2); padding-bottom:4px; margin-top:10px;">ROGUE AI THREAT INVENTORY</div>';
+  ENEMY_TYPES.forEach(e => {
+    html += `
+      <div class="codex-card">
+        <div class="codex-name" style="color:${e.color}">${e.name}</div>
+        <div>Base HP: ${e.hp} | Speed: ${e.speed}x | Bounty: ${e.bounty} TB</div>
+        <div style="margin-top:2px; font-size:10px; color:var(--text-secondary)">Special: ${e.shield ? 'Energy Shield. ' : ''}${e.armor ? 'Heavy Plated. ' : ''}${e.stealth ? 'Trojan Cloak. ' : ''}${e.splits ? 'Replication Splitting. ' : ''}${e.phase ? 'Quantum Shift. ' : ''}${e.boss ? 'Titan Class Boss.' : 'Standard Unit.'}</div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function gameOver() {
+  showToast('CRITICAL BREACH: HUMAN MAINFRAME COMPROMISED');
+  setTimeout(() => {
+    alert(`GAME OVER! Final Wave: ${currentWave}, Score: ${score}`);
+    buildStage(currentStageIndex);
+  }, 100);
+}
+
+/* ==========================================================================
+   START GAME
+   ========================================================================== */
+buildStage(0);
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
