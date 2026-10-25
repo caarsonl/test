@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NEURAL BREACH - GAME ENGINE CONSTANTS & STATE
+   NEURAL BREACH - GAME ENGINE & HIGH-TECH MOTHERBOARD CANVAS
    ========================================================================== */
 const TILE_SIZE = 56;
 const COLS = 16;
@@ -7,22 +7,87 @@ const ROWS = 10;
 const CANVAS_WIDTH = COLS * TILE_SIZE; // 896
 const CANVAS_HEIGHT = ROWS * TILE_SIZE; // 560
 
-const COLORS = {
-  bg: '#060914',
-  grid: '#0d1629',
-  roadBed: '#071020',
-  roadLine: '#00f0ff',
-  roadGlow: 'rgba(0, 240, 255, 0.12)',
-  towerBase: '#101a2e',
-  towerRim: '#1a2c4a',
-  towerSideDark: '#080d17',
-  towerSideLight: '#1d2d47',
-  towerTop: '#131e33',
-  selection: '#00f0ff',
-  invalid: '#ff3366',
-  core: '#00ff88',
-  spawn: '#ff3366'
-};
+/* ==========================================================================
+   STAGE DEFINITIONS WITH CYBERNETIC PALETTES
+   ========================================================================== */
+const STAGES = [
+  {
+    name: 'STAGE 1: SUBNET GATEWAY',
+    path: [[0, 2], [5, 2], [5, 7], [10, 7], [10, 3], [15, 3]],
+    theme: {
+      pcbBase: '#050a17',
+      pcbGrid: '#0c172d',
+      traceColor: '#00d0ea',
+      viaGold: '#1ac2df',
+      chipBody: '#0b1324',
+      chipBorder: '#1c345b',
+      heatsink: '#152542',
+      roadOuter: '#0c1c38',
+      roadInner: '#060f21',
+      roadGlow: 'rgba(0, 240, 255, 0.25)',
+      accentColor: '#00f0ff'
+    }
+  },
+  {
+    name: 'STAGE 2: DUAL CONVERGENCE',
+    path: [[0, 1], [4, 1], [4, 5], [11, 5], [11, 8], [15, 8]],
+    theme: {
+      pcbBase: '#0c0a06',
+      pcbGrid: '#211a0c',
+      traceColor: '#cfa235',
+      viaGold: '#ffbe26',
+      chipBody: '#191309',
+      chipBorder: '#4a3819',
+      heatsink: '#30240d',
+      roadOuter: '#2b1f0a',
+      roadInner: '#120d04',
+      roadGlow: 'rgba(255, 184, 0, 0.25)',
+      accentColor: '#ffb800'
+    }
+  },
+  {
+    name: 'STAGE 3: SERPENTINE MATRIX',
+    path: [[0, 4], [3, 4], [3, 1], [8, 1], [8, 8], [12, 8], [12, 4], [15, 4]],
+    theme: {
+      pcbBase: '#040d08',
+      pcbGrid: '#092114',
+      traceColor: '#10b981',
+      viaGold: '#34d399',
+      chipBody: '#091c11',
+      chipBorder: '#134e2a',
+      heatsink: '#0e381e',
+      roadOuter: '#0c2e1a',
+      roadInner: '#04140b',
+      roadGlow: 'rgba(0, 255, 136, 0.22)',
+      accentColor: '#00ff88'
+    }
+  },
+  {
+    name: 'STAGE 4: QUANTUM NEXUS',
+    path: [[0, 7], [3, 7], [3, 2], [7, 2], [7, 7], [11, 7], [11, 2], [15, 2]],
+    theme: {
+      pcbBase: '#0a0515',
+      pcbGrid: '#1b0e35',
+      traceColor: '#a855f7',
+      viaGold: '#c084fc',
+      chipBody: '#160b2b',
+      chipBorder: '#3b1d6e',
+      heatsink: '#2b1452',
+      roadOuter: '#2b124a',
+      roadInner: '#0e051c',
+      roadGlow: 'rgba(181, 55, 242, 0.26)',
+      accentColor: '#b537f2'
+    }
+  }
+];
+
+/* ==========================================================================
+   OFFSCREEN BACKGROUND CACHE (ZERO-LAG ARCHITECTURE)
+   ========================================================================== */
+const bgCanvas = document.createElement('canvas');
+bgCanvas.width = CANVAS_WIDTH;
+bgCanvas.height = CANVAS_HEIGHT;
+const bgCtx = bgCanvas.getContext('2d');
 
 /* ==========================================================================
    AUDIO SYNTHESIZER (Pure Web Audio API)
@@ -123,125 +188,16 @@ const audio = new SoundEngine();
    GAME DEFINITIONS (10 TOWERS & 10 ENEMIES)
    ========================================================================== */
 const TOWER_TYPES = [
-  {
-    id: 'blaster',
-    name: 'Pulse Blaster',
-    cost: 100,
-    range: 130,
-    dmg: 22,
-    rate: 3.5,
-    color: '#00f0ff',
-    desc: 'Rapid twin pulse laser. Reliable against vanguard packets.',
-    height: 32
-  },
-  {
-    id: 'railgun',
-    name: 'Rail Sniper',
-    cost: 175,
-    range: 220,
-    dmg: 95,
-    rate: 0.9,
-    color: '#ffb800',
-    desc: 'Heavy hyper-velocity slug piercing armored rogue units.',
-    height: 44
-  },
-  {
-    id: 'emp',
-    name: 'EMP Nova',
-    cost: 150,
-    range: 110,
-    dmg: 12,
-    rate: 1.2,
-    color: '#38bdf8',
-    desc: 'Radial electromagnetic blast that strips energy shields.',
-    height: 28,
-    isAoe: true
-  },
-  {
-    id: 'cryo',
-    name: 'Cryo Cooler',
-    cost: 130,
-    range: 120,
-    dmg: 6,
-    rate: 2.0,
-    color: '#67e8f9',
-    desc: 'Liquid nitrogen coolant projector slowing enemy speed by 50%.',
-    height: 30,
-    slow: 0.5,
-    slowDur: 2.5
-  },
-  {
-    id: 'tesla',
-    name: 'Tesla Arc',
-    cost: 210,
-    range: 140,
-    dmg: 35,
-    rate: 1.6,
-    color: '#c084fc',
-    desc: 'High voltage electrical arc chaining through up to 4 targets.',
-    height: 38,
-    chains: 4
-  },
-  {
-    id: 'decompiler',
-    name: 'Virus Acid',
-    cost: 160,
-    range: 125,
-    dmg: 8,
-    rate: 2.2,
-    color: '#4ade80',
-    desc: 'Corrosive algorithmic memory leak dealing acid damage over time.',
-    height: 32,
-    dot: 18,
-    dotDur: 3.0
-  },
-  {
-    id: 'mortar',
-    name: 'Plasma Mortar',
-    cost: 240,
-    range: 200,
-    dmg: 110,
-    rate: 0.6,
-    color: '#f97316',
-    desc: 'Long-range ballistics launching high explosive plasma clusters.',
-    height: 40,
-    splashRadius: 55
-  },
-  {
-    id: 'siphon',
-    name: 'Data Siphon',
-    cost: 180,
-    range: 90,
-    dmg: 0,
-    rate: 0.4,
-    color: '#eab308',
-    desc: 'Harvests excess rogue data packets to yield bonus Bandwidth.',
-    height: 36,
-    income: 25
-  },
-  {
-    id: 'vortex',
-    name: 'Null Vortex',
-    cost: 260,
-    range: 135,
-    dmg: 28,
-    rate: 1.4,
-    color: '#ec4899',
-    desc: 'Singularity well that drags high speed enemies backward.',
-    height: 42,
-    pull: 35
-  },
-  {
-    id: 'deathray',
-    name: 'Mainframe Ray',
-    cost: 350,
-    range: 160,
-    dmg: 60,
-    rate: 4.5,
-    color: '#ff0055',
-    desc: 'Continuous channeled thermal particle death beam.',
-    height: 48
-  }
+  { id: 'blaster', name: 'Pulse Blaster', cost: 100, range: 130, dmg: 22, rate: 3.5, color: '#00f0ff', desc: 'Rapid twin pulse laser.', height: 32 },
+  { id: 'railgun', name: 'Rail Sniper', cost: 175, range: 220, dmg: 95, rate: 0.9, color: '#ffb800', desc: 'Hyper-velocity armor-piercing slug.', height: 44 },
+  { id: 'emp', name: 'EMP Nova', cost: 150, range: 110, dmg: 12, rate: 1.2, color: '#38bdf8', desc: 'Radial electromagnetic shield stripper.', height: 28, isAoe: true },
+  { id: 'cryo', name: 'Cryo Cooler', cost: 130, range: 120, dmg: 6, rate: 2.0, color: '#67e8f9', desc: 'Slows rogue AI processes by 50%.', height: 30, slow: 0.5, slowDur: 2.5 },
+  { id: 'tesla', name: 'Tesla Arc', cost: 210, range: 140, dmg: 35, rate: 1.6, color: '#c084fc', desc: 'High voltage arc chaining 4 enemies.', height: 38, chains: 4 },
+  { id: 'decompiler', name: 'Virus Acid', cost: 160, range: 125, dmg: 8, rate: 2.2, color: '#4ade80', desc: 'Corrosive algorithmic memory leak.', height: 32, dot: 18, dotDur: 3.0 },
+  { id: 'mortar', name: 'Plasma Mortar', cost: 240, range: 200, dmg: 110, rate: 0.6, color: '#f97316', desc: 'Long-range explosive plasma cluster.', height: 40, splashRadius: 55 },
+  { id: 'siphon', name: 'Data Siphon', cost: 180, range: 90, dmg: 0, rate: 0.4, color: '#eab308', desc: 'Harvests rogue data for Bandwidth.', height: 36, income: 25 },
+  { id: 'vortex', name: 'Null Vortex', cost: 260, range: 135, dmg: 28, rate: 1.4, color: '#ec4899', desc: 'Gravitational vortex dragging units back.', height: 42, pull: 35 },
+  { id: 'deathray', name: 'Mainframe Ray', cost: 350, range: 160, dmg: 60, rate: 4.5, color: '#ff0055', desc: 'Continuous orbital particle beam.', height: 48 }
 ];
 
 const ENEMY_TYPES = [
@@ -255,36 +211,6 @@ const ENEMY_TYPES = [
   { id: 'phantom', name: 'Quantum Phantom', hp: 260, speed: 1.4, bounty: 35, size: 11, color: '#f43f5e', phase: true },
   { id: 'berserker', name: 'Overclocked Bot', hp: 320, speed: 1.2, bounty: 40, size: 13, color: '#fb923c', enrage: true },
   { id: 'overseer', name: 'Apex Overseer (Boss)', hp: 2400, shield: 800, speed: 0.55, bounty: 250, size: 22, color: '#e11d48', boss: true }
-];
-
-/* ==========================================================================
-   4 STAGE ROAD LAYOUTS
-   ========================================================================== */
-const STAGES = [
-  {
-    name: 'STAGE 1: SUBNET GATEWAY',
-    path: [
-      [0, 2], [5, 2], [5, 7], [10, 7], [10, 3], [15, 3]
-    ]
-  },
-  {
-    name: 'STAGE 2: DUAL CONVERGENCE',
-    path: [
-      [0, 1], [4, 1], [4, 5], [11, 5], [11, 8], [15, 8]
-    ]
-  },
-  {
-    name: 'STAGE 3: SERPENTINE MATRIX',
-    path: [
-      [0, 4], [3, 4], [3, 1], [8, 1], [8, 8], [12, 8], [12, 4], [15, 4]
-    ]
-  },
-  {
-    name: 'STAGE 4: QUANTUM NEXUS',
-    path: [
-      [0, 7], [3, 7], [3, 2], [7, 2], [7, 7], [11, 7], [11, 2], [15, 2]
-    ]
-  }
 ];
 
 /* ==========================================================================
@@ -317,6 +243,7 @@ let mouseWorld = { x: 0, y: 0, inside: false };
 let spawnQueue = [];
 let spawnTimer = 0;
 let roadFlowOffset = 0;
+let portalPulse = 0;
 
 /* ==========================================================================
    INITIALIZATION & SETUP
@@ -325,6 +252,198 @@ const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
+
+/* ==========================================================================
+   PROCEDURAL HIGH-TECH MOTHERBOARD GENERATOR (PRE-RENDERED TO bgCanvas)
+   ========================================================================== */
+function renderStaticMotherboard(theme) {
+  bgCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // 1. PCB Substrate Base
+  bgCtx.fillStyle = theme.pcbBase;
+  bgCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  // 2. Micro-Dot Matrix & PCB Grid Traces
+  bgCtx.strokeStyle = theme.pcbGrid;
+  bgCtx.lineWidth = 1;
+  bgCtx.beginPath();
+  for (let x = 0; x <= CANVAS_WIDTH; x += TILE_SIZE) {
+    bgCtx.moveTo(x, 0); bgCtx.lineTo(x, CANVAS_HEIGHT);
+  }
+  for (let y = 0; y <= CANVAS_HEIGHT; y += TILE_SIZE) {
+    bgCtx.moveTo(0, y); bgCtx.lineTo(CANVAS_WIDTH, y);
+  }
+  bgCtx.stroke();
+
+  // Fine solder matrix dots
+  bgCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  for (let x = 8; x < CANVAS_WIDTH; x += 14) {
+    for (let y = 8; y < CANVAS_HEIGHT; y += 14) {
+      bgCtx.fillRect(x, y, 1.5, 1.5);
+    }
+  }
+
+  // 3. Motherboard Silkscreen Labels & Test Points
+  bgCtx.font = '8px monospace';
+  bgCtx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+  bgCtx.fillText('REV 4.2 // NEURAL BUS ARCHITECTURE', 16, 18);
+  bgCtx.fillText('VOLTAGE: 1.25V // BUS SPEED: 12.8 GT/s', CANVAS_WIDTH - 240, 18);
+
+  // Corner mounting screws with brass washers
+  const corners = [[16, 16], [CANVAS_WIDTH - 16, 16], [16, CANVAS_HEIGHT - 16], [CANVAS_WIDTH - 16, CANVAS_HEIGHT - 16]];
+  corners.forEach(([cx, cy]) => {
+    bgCtx.fillStyle = '#223046';
+    bgCtx.beginPath();
+    bgCtx.arc(cx, cy, 9, 0, Math.PI * 2);
+    bgCtx.fill();
+    bgCtx.strokeStyle = theme.viaGold;
+    bgCtx.lineWidth = 1.5;
+    bgCtx.stroke();
+    // Screw cross
+    bgCtx.strokeStyle = '#000';
+    bgCtx.lineWidth = 2;
+    bgCtx.beginPath();
+    bgCtx.moveTo(cx - 4, cy); bgCtx.lineTo(cx + 4, cy);
+    bgCtx.moveTo(cx, cy - 4); bgCtx.lineTo(cx, cy + 4);
+    bgCtx.stroke();
+  });
+
+  // 4. Procedural IC Microchips & Components on Non-Road Tiles
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r < ROWS; r++) {
+      if (roadTiles.has(`${c},${r}`)) continue;
+
+      const tx = c * TILE_SIZE;
+      const ty = r * TILE_SIZE;
+      const randSeed = (c * 17 + r * 37) % 100;
+
+      // Large Microprocessor Unit (CPU / ASIC)
+      if (randSeed < 14) {
+        const chipW = 38, chipH = 38;
+        const cx = tx + (TILE_SIZE - chipW) / 2;
+        const cy = ty + (TILE_SIZE - chipH) / 2;
+
+        // Metallic pins on 4 sides
+        bgCtx.fillStyle = theme.viaGold;
+        for (let p = 4; p < chipW - 4; p += 6) {
+          bgCtx.fillRect(cx + p, cy - 3, 2, 3); // top
+          bgCtx.fillRect(cx + p, cy + chipH, 2, 3); // btm
+          bgCtx.fillRect(cx - 3, cy + p, 3, 2); // left
+          bgCtx.fillRect(cx + chipW, cy + p, 3, 2); // right
+        }
+
+        // Chip Body
+        bgCtx.fillStyle = theme.chipBody;
+        bgCtx.fillRect(cx, cy, chipW, chipH);
+        bgCtx.strokeStyle = theme.chipBorder;
+        bgCtx.lineWidth = 1.5;
+        bgCtx.strokeRect(cx, cy, chipW, chipH);
+
+        // Center Aluminum Heat Spreader
+        bgCtx.fillStyle = theme.heatsink;
+        bgCtx.fillRect(cx + 6, cy + 6, chipW - 12, chipH - 12);
+
+        // Pin 1 gold dot
+        bgCtx.fillStyle = theme.viaGold;
+        bgCtx.beginPath();
+        bgCtx.arc(cx + 4, cy + 4, 1.8, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        // Stencil Label
+        bgCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        bgCtx.font = '7px monospace';
+        bgCtx.fillText('AI-ASIC', cx + 7, cy + 22);
+      }
+      // Rectangular SOIC IC Memory Module
+      else if (randSeed >= 14 && randSeed < 28) {
+        const chipW = 42, chipH = 22;
+        const cx = tx + (TILE_SIZE - chipW) / 2;
+        const cy = ty + (TILE_SIZE - chipH) / 2;
+
+        // Gull-wing pins
+        bgCtx.fillStyle = '#94a3b8';
+        for (let p = 4; p < chipW - 4; p += 6) {
+          bgCtx.fillRect(cx + p, cy - 3, 2, 3);
+          bgCtx.fillRect(cx + p, cy + chipH, 2, 3);
+        }
+
+        bgCtx.fillStyle = theme.chipBody;
+        bgCtx.fillRect(cx, cy, chipW, chipH);
+        bgCtx.strokeStyle = theme.chipBorder;
+        bgCtx.strokeRect(cx, cy, chipW, chipH);
+
+        bgCtx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        bgCtx.font = '6px monospace';
+        bgCtx.fillText('SRAM-64', cx + 6, cy + 14);
+      }
+      // SMD Ceramic Capacitors & Gold Annular Vias
+      else if (randSeed >= 28 && randSeed < 50) {
+        // Gold Vias
+        bgCtx.fillStyle = theme.viaGold;
+        bgCtx.beginPath();
+        bgCtx.arc(tx + 16, ty + 16, 3, 0, Math.PI * 2);
+        bgCtx.arc(tx + TILE_SIZE - 16, ty + TILE_SIZE - 16, 3, 0, Math.PI * 2);
+        bgCtx.fill();
+        bgCtx.fillStyle = '#000';
+        bgCtx.beginPath();
+        bgCtx.arc(tx + 16, ty + 16, 1.2, 0, Math.PI * 2);
+        bgCtx.arc(tx + TILE_SIZE - 16, ty + TILE_SIZE - 16, 1.2, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        // 45-degree Angled Bus Trace
+        bgCtx.strokeStyle = theme.traceColor;
+        bgCtx.lineWidth = 1.2;
+        bgCtx.beginPath();
+        bgCtx.moveTo(tx + 16, ty + 16);
+        bgCtx.lineTo(tx + 26, ty + 26);
+        bgCtx.lineTo(tx + TILE_SIZE - 16, ty + TILE_SIZE - 16);
+        bgCtx.stroke();
+      }
+    }
+  }
+
+  // 5. High-Tech 2D Road Conduit Trenches
+  bgCtx.lineCap = 'round';
+  bgCtx.lineJoin = 'round';
+
+  // Ambient outer light glow from recessed trench
+  bgCtx.strokeStyle = theme.roadGlow;
+  bgCtx.lineWidth = TILE_SIZE * 0.95;
+  bgCtx.beginPath();
+  bgCtx.moveTo(waypoints[0].x, waypoints[0].y);
+  for (let i = 1; i < waypoints.length; i++) bgCtx.lineTo(waypoints[i].x, waypoints[i].y);
+  bgCtx.stroke();
+
+  // Metallic Raised Conduit Edge Curb
+  bgCtx.strokeStyle = theme.roadOuter;
+  bgCtx.lineWidth = TILE_SIZE * 0.78;
+  bgCtx.stroke();
+
+  // Dark Recessed Trench Core
+  bgCtx.strokeStyle = theme.roadInner;
+  bgCtx.lineWidth = TILE_SIZE * 0.62;
+  bgCtx.stroke();
+
+  // Dual Neon Optical Guide Rails
+  bgCtx.strokeStyle = theme.traceColor;
+  bgCtx.lineWidth = 1.5;
+  bgCtx.stroke();
+
+  // Cross-hatch metal tread grates along road
+  const step = 20;
+  const numSteps = Math.floor(pathLength / step);
+  bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  bgCtx.lineWidth = 1;
+  for (let i = 0; i < numSteps; i++) {
+    const pt = getPointAtDistance(i * step);
+    const perpAngle = pt.angle + Math.PI / 2;
+    const len = 14;
+    bgCtx.beginPath();
+    bgCtx.moveTo(pt.x + Math.cos(perpAngle) * len, pt.y + Math.sin(perpAngle) * len);
+    bgCtx.lineTo(pt.x - Math.cos(perpAngle) * len, pt.y - Math.sin(perpAngle) * len);
+    bgCtx.stroke();
+  }
+}
 
 function buildStage(index) {
   currentStageIndex = index;
@@ -359,6 +478,9 @@ function buildStage(index) {
       }
     }
   }
+
+  // Pre-render static background into offscreen buffer
+  renderStaticMotherboard(stage.theme);
 
   towers = [];
   enemies = [];
@@ -401,60 +523,17 @@ function getPointAtDistance(distance) {
 }
 
 /* ==========================================================================
-   2D TOP-DOWN GROUND & ROAD RENDERING
+   DYNAMIC FOREGROUND 2D BOARD RENDERING
    ========================================================================== */
 function drawBoard2D() {
-  ctx.fillStyle = COLORS.bg;
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  const currentTheme = STAGES[currentStageIndex].theme;
 
-  ctx.strokeStyle = COLORS.grid;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let x = 0; x <= CANVAS_WIDTH; x += TILE_SIZE) {
-    ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT);
-  }
-  for (let y = 0; y <= CANVAS_HEIGHT; y += TILE_SIZE) {
-    ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y);
-  }
-  ctx.stroke();
+  // 1. Instant Draw of Off-Screen Pre-rendered High-Tech Motherboard
+  ctx.drawImage(bgCanvas, 0, 0);
 
-  ctx.fillStyle = '#0a1628';
-  for (let c = 0; c < COLS; c++) {
-    for (let r = 0; r < ROWS; r++) {
-      if (!roadTiles.has(`${c},${r}`) && (c + r) % 3 === 0) {
-        ctx.fillRect(c * TILE_SIZE + 4, r * TILE_SIZE + 4, 3, 3);
-      }
-    }
-  }
-
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  ctx.strokeStyle = COLORS.roadGlow;
-  ctx.lineWidth = TILE_SIZE * 0.88;
-  ctx.beginPath();
-  ctx.moveTo(waypoints[0].x, waypoints[0].y);
-  for (let i = 1; i < waypoints.length; i++) {
-    ctx.lineTo(waypoints[i].x, waypoints[i].y);
-  }
-  ctx.stroke();
-
-  ctx.strokeStyle = COLORS.roadBed;
-  ctx.lineWidth = TILE_SIZE * 0.72;
-  ctx.beginPath();
-  ctx.moveTo(waypoints[0].x, waypoints[0].y);
-  for (let i = 1; i < waypoints.length; i++) {
-    ctx.lineTo(waypoints[i].x, waypoints[i].y);
-  }
-  ctx.stroke();
-
-  ctx.strokeStyle = '#0e243d';
-  ctx.lineWidth = TILE_SIZE * 0.38;
-  ctx.stroke();
-
+  // 2. Animated Flowing Neon Data Chevrons along Road
   const chevronSpacing = 36;
   const numChevrons = Math.floor(pathLength / chevronSpacing);
-  ctx.fillStyle = COLORS.roadLine;
   for (let i = 0; i < numChevrons; i++) {
     const d = (i * chevronSpacing + roadFlowOffset) % pathLength;
     const pt = getPointAtDistance(d);
@@ -463,49 +542,85 @@ function drawBoard2D() {
     ctx.translate(pt.x, pt.y);
     ctx.rotate(pt.angle);
 
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha = 0.55;
     ctx.beginPath();
-    ctx.moveTo(-4, -5);
+    ctx.moveTo(-5, -6);
     ctx.lineTo(4, 0);
-    ctx.lineTo(-4, 5);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = COLORS.roadLine;
+    ctx.lineTo(-5, 6);
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = currentTheme.accentColor;
     ctx.stroke();
 
     ctx.restore();
   }
 
+  // 3. AI Incursion Breach Socket (Animated Danger Vortex)
   const sp = waypoints[0];
   ctx.save();
   ctx.translate(sp.x, sp.y);
-  ctx.fillStyle = 'rgba(255, 51, 102, 0.2)';
+
+  // Outer warning hazard stripes ring
+  ctx.save();
+  ctx.rotate(-portalPulse * 0.4);
+  for (let a = 0; a < 8; a++) {
+    ctx.fillStyle = a % 2 === 0 ? '#ff3366' : '#111827';
+    ctx.beginPath();
+    ctx.arc(0, 0, 26, a * Math.PI / 4, (a + 1) * Math.PI / 4);
+    ctx.lineTo(0, 0);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Dark Inner Breach Eye
+  ctx.fillStyle = '#060913';
   ctx.beginPath();
-  ctx.arc(0, 0, 24, 0, Math.PI * 2);
+  ctx.arc(0, 0, 18, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = COLORS.spawn;
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#ff3366';
+  ctx.lineWidth = 2;
   ctx.stroke();
-  ctx.fillStyle = COLORS.spawn;
-  ctx.font = 'bold 9px monospace';
+
+  // Breach Label
+  ctx.fillStyle = '#ff3366';
+  ctx.font = 'bold 8px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('INCURSION', 0, 0);
   ctx.restore();
 
+  // 4. Fortified Sovereign Human Core Socket (Animated Power Reactor)
   const cp = waypoints[waypoints.length - 1];
   ctx.save();
   ctx.translate(cp.x, cp.y);
-  ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+
+  // Hexagonal Fortified Titanium Socket
+  ctx.fillStyle = '#0b1928';
   ctx.beginPath();
-  ctx.arc(0, 0, 26, 0, Math.PI * 2);
+  for (let i = 0; i < 6; i++) {
+    const ang = i * Math.PI / 3 + portalPulse * 0.3;
+    const px = Math.cos(ang) * 28;
+    const py = Math.sin(ang) * 28;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = COLORS.core;
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 2;
   ctx.stroke();
+
+  // Inner Core Crystal
+  const pulseScale = 1.0 + Math.sin(portalPulse * 3) * 0.12;
+  ctx.fillStyle = 'rgba(0, 255, 136, 0.2)';
   ctx.beginPath();
-  ctx.arc(0, 0, 14, 0, Math.PI * 2);
-  ctx.fillStyle = COLORS.core;
+  ctx.arc(0, 0, 16 * pulseScale, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.fillStyle = '#00ff88';
+  ctx.beginPath();
+  ctx.arc(0, 0, 8, 0, Math.PI * 2);
+  ctx.fill();
+
   ctx.fillStyle = '#000';
   ctx.font = 'bold 8px monospace';
   ctx.textAlign = 'center';
@@ -513,6 +628,7 @@ function drawBoard2D() {
   ctx.fillText('CORE', 0, 0);
   ctx.restore();
 
+  // 5. Grid Hover / Build Placement Indicator
   if (mouseWorld.inside && mouseGrid.col >= 0 && mouseGrid.col < COLS && mouseGrid.row >= 0 && mouseGrid.row < ROWS) {
     const isOccupied = roadTiles.has(`${mouseGrid.col},${mouseGrid.row}`) ||
                        towers.some(t => t.col === mouseGrid.col && t.row === mouseGrid.row);
@@ -522,7 +638,7 @@ function drawBoard2D() {
 
     ctx.fillStyle = isOccupied ? 'rgba(255, 51, 102, 0.22)' : (selectedTowerType ? 'rgba(0, 240, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)');
     ctx.fillRect(gx, gy, TILE_SIZE, TILE_SIZE);
-    ctx.strokeStyle = isOccupied ? COLORS.invalid : (selectedTowerType ? COLORS.selection : 'rgba(255, 255, 255, 0.2)');
+    ctx.strokeStyle = isOccupied ? '#ff3366' : (selectedTowerType ? '#00f0ff' : 'rgba(255, 255, 255, 0.2)');
     ctx.lineWidth = 1.5;
     ctx.strokeRect(gx + 1, gy + 1, TILE_SIZE - 2, TILE_SIZE - 2);
 
@@ -539,6 +655,7 @@ function drawBoard2D() {
     }
   }
 
+  // 6. Selected Tower Range Ring
   if (selectedPlacedTower) {
     ctx.beginPath();
     ctx.arc(selectedPlacedTower.x, selectedPlacedTower.y, selectedPlacedTower.range, 0, Math.PI * 2);
@@ -706,24 +823,27 @@ class Tower25D {
     const h = this.height;
     const r = TILE_SIZE * 0.38;
 
+    // Cast Drop Shadow
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.beginPath();
     ctx.ellipse(bx + 6, by + 6, r * 0.95, r * 0.6, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    ctx.fillStyle = COLORS.towerBase;
+    // Solder Mounting Socket
+    ctx.fillStyle = '#0f172a';
     ctx.beginPath();
     ctx.ellipse(bx, by, r, r * 0.65, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = COLORS.towerRim;
+    ctx.strokeStyle = '#1e293b';
     ctx.lineWidth = 2;
     ctx.stroke();
 
     const topY = by - h;
 
-    ctx.fillStyle = COLORS.towerSideDark;
+    // Dark side face
+    ctx.fillStyle = '#080d17';
     ctx.beginPath();
     ctx.moveTo(bx - r, by);
     ctx.lineTo(bx - r, topY);
@@ -732,7 +852,8 @@ class Tower25D {
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = COLORS.towerSideLight;
+    // Lit side face
+    ctx.fillStyle = '#1d2d47';
     ctx.beginPath();
     ctx.moveTo(bx, by + r * 0.35);
     ctx.lineTo(bx, topY + r * 0.35);
@@ -748,7 +869,8 @@ class Tower25D {
     ctx.lineTo(bx, topY + r * 0.35);
     ctx.stroke();
 
-    ctx.fillStyle = COLORS.towerTop;
+    // Elevated Deck Platform
+    ctx.fillStyle = '#131e33';
     ctx.beginPath();
     ctx.ellipse(bx, topY, r * 0.85, r * 0.55, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -756,6 +878,7 @@ class Tower25D {
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    // Level Indicators
     for (let l = 0; l < this.level; l++) {
       ctx.fillStyle = this.type.color;
       ctx.beginPath();
@@ -763,6 +886,7 @@ class Tower25D {
       ctx.fill();
     }
 
+    // Elevated Turret Head
     ctx.save();
     ctx.translate(bx, topY);
     ctx.rotate(this.angle);
@@ -900,9 +1024,7 @@ class Enemy2D {
   takeDamage(amount, source) {
     if (this.dead) return;
 
-    if (this.type.armor) {
-      amount *= (1 - this.type.armor);
-    }
+    if (this.type.armor) amount *= (1 - this.type.armor);
 
     if (this.shield > 0) {
       if (this.shield >= amount) {
@@ -1239,7 +1361,7 @@ function spawnFloatingText(text, x, y, color) {
 
 /* ==========================================================================
    WAVE GENERATOR
-   ========================================================================== */
+   ========================================================================= */
 function transmitWave() {
   if (waveActive) return;
   audio.init();
@@ -1292,7 +1414,8 @@ function gameLoop(timestamp) {
   const dt = Math.min(rawDt, 0.1) * gameSpeed;
 
   if (dt > 0) {
-    roadFlowOffset = (roadFlowOffset + dt * 40) % pathLength;
+    roadFlowOffset = (roadFlowOffset + dt * 42) % pathLength;
+    portalPulse += dt;
 
     if (spawnQueue.length > 0) {
       spawnTimer -= dt;
@@ -1328,15 +1451,20 @@ function gameLoop(timestamp) {
     floatingTexts = floatingTexts.filter(f => f.life > 0);
   }
 
+  // 1. Draw High-Tech Motherboard Background & Flow Conduits
   drawBoard2D();
 
+  // 2. Draw 2D Enemies
   enemies.forEach(e => e.draw());
 
+  // 3. Draw 2.5D Extruded Towers (Sorted by row for isometric occlusion)
   const sortedTowers = [...towers].sort((a, b) => a.row - b.row);
   sortedTowers.forEach(t => t.draw());
 
+  // 4. Draw Projectiles
   projectiles.forEach(p => p.draw());
 
+  // 5. Draw Particles & Beams
   particles.forEach(p => {
     ctx.save();
     if (p.isBeam) {
@@ -1356,6 +1484,7 @@ function gameLoop(timestamp) {
     ctx.restore();
   });
 
+  // 6. Draw Floating Texts
   floatingTexts.forEach(f => {
     ctx.save();
     ctx.font = 'bold 11px monospace';

@@ -8,7 +8,7 @@
 </head>
 <body>
 
-  <!-- TOP HUD -->
+  <!-- TOP STATUS HUD -->
   <header id="top-hud">
     <div class="brand-group">
       <div class="brand-title">NEURAL BREACH</div>
@@ -48,7 +48,13 @@
 
   <!-- WORKSPACE & CANVAS -->
   <main id="workspace">
-    <canvas id="game-canvas"></canvas>
+    <div id="canvas-frame">
+      <canvas id="game-canvas"></canvas>
+      <div class="corner-bracket top-left"></div>
+      <div class="corner-bracket top-right"></div>
+      <div class="corner-bracket btm-left"></div>
+      <div class="corner-bracket btm-right"></div>
+    </div>
 
     <!-- TOWER INSPECTOR PANEL -->
     <div id="inspector-panel">
@@ -95,19 +101,19 @@
         <div class="codex-grid">
           <div class="codex-card" style="cursor:pointer;" onclick="selectStage(0)">
             <div class="codex-name val-cyan">STAGE 1: SUBNET GATEWAY</div>
-            <div>Linear peripheral bus firewall. Gentle single path ideal for establishing perimeter turrets.</div>
+            <div>Cobalt server motherboard with dual-core network controllers and high-speed memory buffers.</div>
           </div>
           <div class="codex-card" style="cursor:pointer;" onclick="selectStage(1)">
             <div class="codex-name val-amber">STAGE 2: DUAL CONVERGENCE</div>
-            <div>Two data buses converging into a central bottleneck. High density crossfire sector.</div>
+            <div>Heavy gold-plated industrial compute array with dual converging data highways and heat sink banks.</div>
           </div>
           <div class="codex-card" style="cursor:pointer;" onclick="selectStage(2)">
             <div class="codex-name val-green">STAGE 3: SERPENTINE MATRIX</div>
-            <div>Winding circuit pathways requiring precision range and area decompiler nodes.</div>
+            <div>Emerald bio-digital circuit weave with intricate serpentine trace routing and neural memory cells.</div>
           </div>
           <div class="codex-card" style="cursor:pointer;" onclick="selectStage(3)">
-            <div class="codex-name val-red">STAGE 4: QUANTUM NEXUS</div>
-            <div>High threat core sector with multi-angle assault corridors and rapid rogue packets.</div>
+            <div class="codex-name val-purple">STAGE 4: QUANTUM NEXUS</div>
+            <div>Superconducting violet matrix with high-frequency photonic channels guarding the core mainframe.</div>
           </div>
         </div>
       </div>
